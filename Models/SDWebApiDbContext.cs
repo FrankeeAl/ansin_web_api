@@ -8,7 +8,7 @@ namespace SharpDevelopWebApi.Models
 {
     public class SDWebApiDbContext : DbContext
     {
-        public SDWebApiDbContext() : base("ansinDb") // name_of_dbconnection_string
+        public SDWebApiDbContext() : base("ansinDb") // DefaultConn ansinDb
         {
         }
 

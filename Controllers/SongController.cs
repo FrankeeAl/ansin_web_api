@@ -5,6 +5,8 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.Data.Entity;
+using System.Data.Entity.Migrations;
+using System.Web.WebPages;
 using SharpDevelopWebApi.Models;
 
 namespace SharpDevelopWebApi.Controllers
@@ -14,10 +16,37 @@ namespace SharpDevelopWebApi.Controllers
         SDWebApiDbContext _db = new SDWebApiDbContext();
         
         [HttpGet]
-        public IHttpActionResult GetAll()
+        public IHttpActionResult GetAll(string search = "", string artists = "", int ? year = null, int ? peak = null )
         {
-            List<Song> songs = _db.Songs.ToList();
-            return Ok(songs);
+            List<Song> songs;
+            if (string.IsNullOrWhiteSpace(search ))
+            { 
+                songs = _db.Songs.ToList();
+            }
+            else
+            {
+               songs = _db.Songs.Where(s => 
+                                        s.Title.ToLower().Contains(search.ToLower())
+                                        || s.Artist.ToLower().Contains(search.ToLower())
+                                        ).OrderBy(o => o.Title.ToLower()).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(artists))
+            {
+                songs = songs.Where(k => k. Artist.ToLower() == artists).ToList();
+            }
+            if (peak != null)
+            {
+                songs = songs.Where(x => x.PeakChartPosition <= peak).ToList();
+            }
+            if (year != null)
+            {
+                songs = songs.Where(x => x.ReleaseYear == year).ToList();
+            }
+
+            int totalSongs = songs.Count();
+
+            return Ok( new { totalSongs, songs});
         }
         [HttpPost]
         public IHttpActionResult Create([FromBody]Song song)
@@ -28,21 +57,26 @@ namespace SharpDevelopWebApi.Controllers
         }
 
         [HttpPut]
-        public IHttpActionResult Update([FromBody] Song updateSong)
+        public IHttpActionResult Update([FromBody]Song updatedSong)
         {
-            var song = _db.Songs.Find(updateSong.Id);
+            var song = _db.Songs.Find(updatedSong.Id);
             if (song != null)
             {
-                song.Id = updateSong.Id;
-                song.Title = updateSong.Title;
-                song.Artist = updateSong.Artist;
-                song.Genre = updateSong.Genre;
+                song.Artist = updatedSong.Artist;
+                song.Title = updatedSong.Title;
+                song.Genre = updatedSong.Genre;
+                song.ReleaseYear = updatedSong.ReleaseYear;
+                song.PeakChartPosition = updatedSong.PeakChartPosition;
                 _db.Entry(song).State = EntityState.Modified;
                 _db.SaveChanges();
+
                 return Ok(song);
             }
             else
-                return BadRequest("Song not found.");
+            {
+                return BadRequest("Song not found");
+            }
+
         }
 
         [HttpDelete]
@@ -60,9 +94,9 @@ namespace SharpDevelopWebApi.Controllers
         }
 
         [HttpGet]
-        public IHttpActionResult Get(int Id)
+        public IHttpActionResult Get(int id)
         {
-            var song = _db.Songs.Find(Id);
+            var song = _db.Songs.Find(id);
             if (song != null)
                 return Ok(song);
             else
